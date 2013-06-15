@@ -173,7 +173,6 @@
 	// it by now, it is too late.
 	_lastLineFileOffset += _lastLineLength;
 	_lastLineLength = 0;
-	_lastLineNumber++;
 	
 	while (YES) {
 		BOOL found = [self readByte:&byte];
@@ -207,11 +206,6 @@
 							else {
 								// open the file, and re-enter the loop through each
 								[self openURL:self.fileURL];
-								// opening a URL normally sets the line number to 0 which then
-								// relies on the call to readLine to increment it to 1 for the first
-								// line, but because we are already inside the loop, we need to set
-								// it manually.
-								_lastLineNumber = 1;
 								continue;
 							}
 						}
@@ -232,6 +226,9 @@
 			}
 		}
 	}
+
+	_lastLineNumber++;
+
 	// if we've not been able to read a single byte, we return a nil.  This distinguishes
 	// between no data, and an empty line with just a EOL that was stripped
 	return _lastLineLength == 0 ? nil : data;
