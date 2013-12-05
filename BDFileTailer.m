@@ -1,6 +1,6 @@
-// BDFileTailer.m
+// BDFileTailer.h
 //
-// Copyright (c) 2013 Craig Edwards 
+// Copyright (c) 2013 Craig Edwards
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 #import <sys/types.h>
 #import <sys/stat.h>
 
-#define CR '\n'
-#define LF '\r'
+#define CR '\r'
+#define LF '\n'
 
 /**
  * Defines a bunch of internal properties
@@ -37,7 +37,7 @@
 /** Points to the file we're reading from */
 @property (nonatomic, strong) NSFileHandle *fileHandle;
 /** Contains the original length of the file */
-@property (nonatomic, assign) NSUInteger fileLength;
+@property (nonatomic, assign) NSUInteger originalFileLength;
 
 /** Contains the current buffer of data we've pre-read from the file */
 @property (nonatomic, strong) NSData *buffer;
@@ -91,7 +91,7 @@
 	}
 	
 	// figure out the length of the file, and then seek back to start of file
-	self.fileLength = [self.fileHandle seekToEndOfFile];
+	self.originalFileLength = [self.fileHandle seekToEndOfFile];
 	[self.fileHandle seekToFileOffset:0ULL];
 	
 	_lastLineFileOffset = 0;
@@ -127,19 +127,19 @@
 -(BOOL)nextByte:(uint8_t *)byte consume:(BOOL)consume {
 	// firstly let's check to see if we need more buffer. If we can't
 	// get any more, then we indicate there is no more data available
-	if (self.nextBufferOffset >= self.bufferLength) {
+	if (_nextBufferOffset >= _bufferLength) {
 		[self fillBuffer];
-		if (self.bufferLength == 0)
+		if (_bufferLength == 0)
 			return NO;
 	}
 	
 	// go get the byte we need
-	*byte = self.bufferPointer[self.nextBufferOffset];
+	*byte = _bufferPointer[_nextBufferOffset];
 	
 	// if we are consuming this, we need to shuffle the buffer pointer along, and also
 	// keep track of how long this line is.
 	if (consume) {
-		self.nextBufferOffset++;
+		_nextBufferOffset++;
 		_lastLineLength++;
 	}
 	
@@ -242,7 +242,7 @@
 	if (data == nil)
 		return nil;
 	
-	for (int i = 0; i < self.encodings.count; i++) {
+	for (NSUInteger i = 0; i < self.encodings.count; i++) {
 		NSStringEncoding encoding = [self.encodings[i] integerValue];
 		NSString *string = [[NSString alloc] initWithData:data encoding:encoding];
 		if (string != nil)
@@ -268,8 +268,8 @@
 			[currentLineData appendBytes:(void *)&byte length:1];
 		return YES;
 	}
-	else if (byte == LF && self.lineEndIndicator == BDFileTailerLineEndOnlyLF) {     // Found a LF (matches OnlyLF)
-		if (self.shouldStripLineEnds == NO)
+	else if (byte == LF && (self.lineEndIndicator == BDFileTailerLineEndOnlyLF || self.lineEndIndicator == BDFileTailerLineEndAuto)) {
+		if (self.shouldStripLineEnds == NO)                                            // Found a LF (matches OnlyLF or Auto)
 			[currentLineData appendBytes:(void *)&byte length:1];
 		return YES;
 	}
@@ -284,7 +284,7 @@
 				}
 			}
 			else {
-				if (self.lineEndIndicator == BDFileTailerLineEndAuto) {                // Found a CR (matches Auto)
+				if (self.lineEndIndicator == BDFileTailerLineEndAuto) {                    // Found a CR (matches Auto)
 					if (self.shouldStripLineEnds == NO)
 						[currentLineData appendBytes:(void *)&byte length:1];
 				}

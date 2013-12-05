@@ -1,6 +1,6 @@
-// BDFileTailer.h
+// BDFileTailer.m
 //
-// Copyright (c) 2013 Craig Edwards 
+// Copyright (c) 2013 Craig Edwards
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,9 @@ typedef enum {
  * This property is only honoured if shouldTail=YES.
  */
 @property (nonatomic, assign) BOOL shouldFollowRename;
+
+/** The starting size of the file */
+@property (nonatomic, readonly) NSUInteger originalFileLength;
 
 /** The line number that was just read (1-based index) */
 @property (nonatomic, readonly) NSUInteger lastLineNumber;
